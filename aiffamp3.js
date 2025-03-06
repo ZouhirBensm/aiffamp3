@@ -1,7 +1,7 @@
 // 123
 const express = require('express');
 const dotenv = require('dotenv');
-const path = require('path'); // Add path module
+// const path = require('path'); // Add path module
 
 
 dotenv.config();
@@ -9,15 +9,15 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT;
 
-// app.use('/public', express.static('public'));
-app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/public', express.static('public'));
+// app.use('/public', express.static(path.join(__dirname, 'public')));
 
-// app.get('/', (req, res) => {
-//   res.sendFile(__dirname + '/public/index.html');
-// });
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html')); // Use path.join for dynamic paths
+  res.sendFile(__dirname + '/public/index.html');
 });
+// app.get('/', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'public', 'index.html')); // Use path.join for dynamic paths
+// });
 
 
 const gracefulShutdown = () => {
