@@ -1,0 +1,62 @@
+name: aiffamp3.com Continuous Integration
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  aiffamp3com_Automated_Deployment_Process:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Retrieve actions/checkout@v2 💻
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.ref }}
+
+    - name: Syncing development with prod environment aiffamp3.com
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_HOSTNAME }}
+        username: ${{ secrets.SERVER_USERNAME }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        port: ${{ secrets.SERVER_PORT }}
+        script: |
+          cd aiffamp3
+          
+          # Remove old files and directories
+          rm -f package-lock.json
+          rm -rf node_modules
+          # rm -rf ./dump.txt
+          
+          # Ensure the correct permissions for models directory
+          # chmod -R 755 models
+          # rm -rf ./models/*
+          
+          # Fetch the latest changes from GitHub and handle merge conflicts
+          git fetch origin master
+          
+          # Try pulling, using theirs strategy to resolve conflicts in favor of the remote
+          git merge --strategy=recursive --strategy-option=theirs origin/master || echo "Merge failed, resolving manually"
+
+          # If merge conflicts still exist, we'll resolve them manually (we force their version of the merge)
+          git add .  # Stage the resolved files
+          git commit -m "Merge conflicts resolved (using 'theirs' strategy)" || echo "No conflicts to commit"
+          
+
+
+          # Make sure we are always pulling the latest remote changes
+          git pull https://${{ secrets.GITHUUB_USERNAME }}:${{ secrets.GITHUUB_PASSWORD }}@github.com/${{ secrets.GITHUUB_USERNAME }}/aifcamp3.git master --strategy=recursive --strategy-option=theirs
+
+          # Install npm dependencies
+          npm install
+          
+          # Import database dump
+          # mysql -u ${{ secrets.DB_USERNAME }} -p${{ secrets.DB_USERPASSWORD }} ${{ secrets.DB_NAME }} < ./dump.txt
+          
+          # Generate models using sequelize-auto
+          # sequelize-auto -o \"./models\" -d ${{ secrets.DB_NAME }} -h ${{ secrets.DB_HOST }} -u ${{ secrets.DB_USERNAME }} -p ${{ secrets.DB_PORT }} -x ${{ secrets.DB_USERPASSWORD }} -e mysql
+          
+          # Restart server using pm2
+          pm2 restart aiffamp3
