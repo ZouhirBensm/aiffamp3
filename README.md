@@ -1,9 +1,9 @@
-# aifctomp3
+# aifftomp3
 
-This project is a Node.js application designed to serve an HTML page and handle audio-related tasks, specifically serving `.aifc` audio files and converting them to `.mp3`. The app is hosted on **Linode**.
+This project is a Node.js application designed to serve an HTML page and handle audio-related tasks, specifically serving `.aiff` audio files and converting them to `.mp3`. The app is hosted on **Linode**.
 
 The app is available in render at:  
-[https://aifcamp3.com/](https://aifcamp3.com/)
+[https://aiffamp3.com/](https://aiffamp3.com/)
 
 ## Features
 
@@ -25,8 +25,8 @@ The app is available in render at:
 1. Clone this repository:
 
     ```bash
-    git clone https://github.com/your-username/aifcamp3.git
-    cd aifcamp3
+    git clone https://github.com/your-username/aiffamp3.git
+    cd aiffamp3
     ```
 
 2. Install the dependencies:
@@ -58,11 +58,11 @@ The app is available in render at:
     This will start the server on the specified `PORT`. The command triggers the following:
 
     ```bash
-    nodemon aifcamp3.js
+    nodemon aiffamp3.js
     ```
 
 3. To run in **production mode**, set `NODE_ENV` to `production`:
 
     ```bash
-    node aifcamp3.js
+    node aiffamp3.js
     ```

@@ -47,7 +47,7 @@ jobs:
 
 
           # Make sure we are always pulling the latest remote changes
-          git pull https://${{ secrets.GITHUUB_USERNAME }}:${{ secrets.GITHUUB_PASSWORD }}@github.com/${{ secrets.GITHUUB_USERNAME }}/aifcamp3.git master --strategy=recursive --strategy-option=theirs
+          git pull https://${{ secrets.GITHUUB_USERNAME }}:${{ secrets.GITHUUB_PASSWORD }}@github.com/${{ secrets.GITHUUB_USERNAME }}/aiffamp3.git master --strategy=recursive --strategy-option=theirs
 
           # Install npm dependencies
           npm install

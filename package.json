@@ -5,7 +5,7 @@
   "main": "aifftomp3.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon aifcamp3.js"
+    "dev": "nodemon aiffamp3.js"
   },
   "keywords": [
     "aiff",
