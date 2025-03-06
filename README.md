@@ -2,7 +2,7 @@
 
 This project is a Node.js application designed to serve an HTML page and handle audio-related tasks, specifically serving `.aifc` audio files and converting them to `.mp3`. The app is hosted on **Render.com** using the free plan.
 
-The app is available in production at:  
+The app is available in render at:  
 [https://aifctomp3.onrender.com/](https://aifctomp3.onrender.com/)
 
 ## Features
@@ -18,7 +18,7 @@ The app is available in production at:
 - [Running the App Locally](#running-the-app-locally)
 - [Deployment to Render](#deployment-to-render)
 - [Graceful Shutdown](#graceful-shutdown)
-- [Production Setup](#production-setup)
+- [Render Setup](#render-setup)
 
 ## Installation
 
@@ -61,7 +61,7 @@ The app is available in production at:
     nodemon aifctomp3.js
     ```
 
-3. To run in **production mode**, set `NODE_ENV` to `production`:
+3. To run in **render mode**, set `NODE_ENV` to `render`:
 
     ```bash
     node aifctomp3.js
@@ -84,7 +84,7 @@ This project is deployed on Render’s free plan. To deploy it:
    - Set the **ENV variables** to PORT=3000.
 
 4. **Deploy the app**:  
-   Once you connect your repository, Render will automatically deploy the app and set up a production environment.
+   Once you connect your repository, Render will automatically deploy the app and set up a render environment.
 
 5. After deployment, you can access the app at:  
    [https://aifctomp3.onrender.com/](https://aifctomp3.onrender.com/)
