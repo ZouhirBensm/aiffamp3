@@ -24,13 +24,15 @@ const upload = multer({
     cb(null, true);
   },
   limits: {
-    fileSize: 1024 * 1024 * 1024 // Optional: 1GB limit as an example
+    fileSize: 1 * 1024 * 1024 * 1024 // Optional: 1GB limit as an example
+    // fileSize: 1024 * 1024 // Optional: 1GB limit as an example
   }
 }).single('file');
 
 
 
 // Queue management
+// const MAX_MEMORY = 1024 * 1024; // For testing
 const MAX_MEMORY = 32 * 1024 * 1024 * 1024; // 32GB in bytes
 let processing = false;
 const queue = [];
@@ -157,40 +159,46 @@ async function processQueue() {
     processQueue();
   }
 }
+app.post(
+  '/convert',
+  rateLimiter, // Standard middleware
+  upload,      // Multer middleware (can throw errors)
+  async (req, res) => { // Route handler (only runs if no errors)
+    await ensureUploadDir();
 
+    const ip = req.ip || req.connection.remoteAddress;
+    await logRequest(ip);
 
-// Conversion endpoint with rate limiter
-app.post('/convert', rateLimiter, upload, async (req, res) => {
-  await ensureUploadDir();
-
-  const ip = req.ip || req.connection.remoteAddress;
-  await logRequest(ip);
-
-  if (!req.file) {
-    return res.status(400).send('No file uploaded');
-  }
-
-  const filePath = req.file.path;
-  const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
-  const fileSize = await getFileSize(filePath);
-
-  if (currentQueueSize + fileSize > MAX_MEMORY) {
-    await fs.unlink(filePath).catch(() => { });
-    return res.status(503).send('Server memory limit reached. Please try again later.');
-  }
-
-  currentQueueSize += fileSize;
-  queue.push({ req, res, filePath, outputPath });
-  processQueue();
-}, (err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).send('File too large');
+    if (!req.file) {
+      return res.status(400).send('No file uploaded');
     }
-    return res.status(400).send(err.message);
+
+    const filePath = req.file.path;
+    const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
+    const fileSize = await getFileSize(filePath);
+
+    if (currentQueueSize + fileSize > MAX_MEMORY) {
+      await fs.unlink(filePath).catch(() => { });
+      return res.status(503).send('Server memory limit reached. Please try again later.');
+    }
+
+    currentQueueSize += fileSize;
+    queue.push({ req, res, filePath, outputPath });
+    processQueue();
+  },
+  (err, req, res, next) => { // Error handler (only runs if error occurs)
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).send('File too large');
+      }
+      // Add more Multer-specific error codes if needed
+    }
+    if (err.message === 'Only AIFF files are allowed') {
+      return res.status(400).send(err.message);
+    }
+    next(err); // Pass unhandled errors to global error handler
   }
-  next(err);
-});
+);
 
 
 // Error handling middleware

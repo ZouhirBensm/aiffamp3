@@ -7,6 +7,7 @@
 # - Status: 200
 # - Response contains "File converted and saved to"
 # - File path in response matches expected pattern
+# ✔
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
@@ -21,20 +22,22 @@ Content-Type: audio/aiff
 # What to look for:
 # - Status: 400
 # - Response body: "Only AIFF files are allowed"
+# ✔
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
 ------123
-Content-Disposition: form-data; name="file"; filename="test.mp3"
+Content-Disposition: form-data; name="file"; filename="short.mp3"
 Content-Type: audio/mpeg
 
-< ./test-files/test.mp3
+< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audios-pretreatments/short.mp3
 ------123--
 
 ### Test 3: No File Uploaded
 # What to look for:
 # - Status: 400
 # - Response body: "No file uploaded"
+# ✔
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
@@ -45,14 +48,16 @@ Content-Type: multipart/form-data; boundary=----123
 # - Status: 429
 # - Response body: "Too many requests. Please try again later."
 # Note: Run this 11 times in quick succession (within 15 minutes)
+# Figure out better way to do this
+# ✔
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
 ------123
-Content-Disposition: form-data; name="file"; filename="test.aiff"
+Content-Disposition: form-data; name="file"; filename="short.aiff"
 Content-Type: audio/aiff
 
-< ./test-files/test.aiff
+< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/short.aiff
 ------123--
 
 ### Test 5: File Exceeds Memory Limit
@@ -60,14 +65,15 @@ Content-Type: audio/aiff
 # - Status: 503
 # - Response body: "Server memory limit reached. Please try again later."
 # Note: Requires a file > 32GB, or mock the server to simulate this
+# ✔
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
 ------123
-Content-Disposition: form-data; name="file"; filename="large.aiff"
+Content-Disposition: form-data; name="file"; filename="med60.aiff"
 Content-Type: audio/aiff
 
-< ./test-files/large.aiff
+< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/med60.aiff
 ------123--
 
 ### Test 6: Invalid File (Corrupted AIFF)
@@ -75,14 +81,15 @@ Content-Type: audio/aiff
 # - Status: 500
 # - Response body: "Error converting file"
 # Note: Use a corrupted AIFF file that FFmpeg can't process
+# ✔
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
 ------123
-Content-Disposition: form-data; name="file"; filename="corrupt.aiff"
+Content-Disposition: form-data; name="file"; filename="corrupt_short.aiff"
 Content-Type: audio/aiff
 
-< ./test-files/corrupt.aiff
+< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-4/corrupt_short.aiff
 ------123--
 
 ### Test 7: File Size Limit (Multer)
@@ -90,14 +97,15 @@ Content-Type: audio/aiff
 # - Status: 400
 # - Response body: "File too large"
 # Note: Temporarily set multer limit to 1 byte for this test, or use a very large file
+# ✔
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
 ------123
-Content-Disposition: form-data; name="file"; filename="oversized.aiff"
+Content-Disposition: form-data; name="file"; filename="med60.aiff"
 Content-Type: audio/aiff
 
-< ./test-files/oversized.aiff
+< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/med60.aiff
 ------123--
 
 ### Test 8: Queue Processing Multiple Files
@@ -105,22 +113,13 @@ Content-Type: audio/aiff
 # - All responses Status: 200
 # - Each response contains unique "File converted and saved to" with different paths
 # - Responses come in sequence (queue behavior)
+# ✔
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
 ------123
-Content-Disposition: form-data; name="file"; filename="test1.aiff"
+Content-Disposition: form-data; name="file"; filename="med30.aiff"
 Content-Type: audio/aiff
 
-< ./test-files/test1.aiff
-------123--
-
-POST {{host}}/convert
-Content-Type: multipart/form-data; boundary=----123
-
-------123
-Content-Disposition: form-data; name="file"; filename="test2.aiff"
-Content-Type: audio/aiff
-
-< ./test-files/test2.aiff
+< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/med30.aiff
 ------123--
