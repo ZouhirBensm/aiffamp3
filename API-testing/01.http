@@ -1,0 +1,126 @@
+# Base URL configuration
+@host = http://localhost:3007
+@port = 3007
+
+### Test 1: Successful AIFF File Upload and Conversion
+# What to look for:
+# - Status: 200
+# - Response contains "File converted and saved to"
+# - File path in response matches expected pattern
+POST {{host}}/convert
+Content-Type: multipart/form-data; boundary=----123
+
+------123
+Content-Disposition: form-data; name="file"; filename="test.aiff"
+Content-Type: audio/aiff
+
+< ./test-files/test.aiff
+------123--
+
+### Test 2: Reject Non-AIFF File (MP3)
+# What to look for:
+# - Status: 400
+# - Response body: "Only AIFF files are allowed"
+POST {{host}}/convert
+Content-Type: multipart/form-data; boundary=----123
+
+------123
+Content-Disposition: form-data; name="file"; filename="test.mp3"
+Content-Type: audio/mpeg
+
+< ./test-files/test.mp3
+------123--
+
+### Test 3: No File Uploaded
+# What to look for:
+# - Status: 400
+# - Response body: "No file uploaded"
+POST {{host}}/convert
+Content-Type: multipart/form-data; boundary=----123
+
+------123--
+
+### Test 4: Rate Limit Exceeded
+# What to look for (after 10 successful requests):
+# - Status: 429
+# - Response body: "Too many requests. Please try again later."
+# Note: Run this 11 times in quick succession (within 15 minutes)
+POST {{host}}/convert
+Content-Type: multipart/form-data; boundary=----123
+
+------123
+Content-Disposition: form-data; name="file"; filename="test.aiff"
+Content-Type: audio/aiff
+
+< ./test-files/test.aiff
+------123--
+
+### Test 5: File Exceeds Memory Limit
+# What to look for:
+# - Status: 503
+# - Response body: "Server memory limit reached. Please try again later."
+# Note: Requires a file > 32GB, or mock the server to simulate this
+POST {{host}}/convert
+Content-Type: multipart/form-data; boundary=----123
+
+------123
+Content-Disposition: form-data; name="file"; filename="large.aiff"
+Content-Type: audio/aiff
+
+< ./test-files/large.aiff
+------123--
+
+### Test 6: Invalid File (Corrupted AIFF)
+# What to look for:
+# - Status: 500
+# - Response body: "Error converting file"
+# Note: Use a corrupted AIFF file that FFmpeg can't process
+POST {{host}}/convert
+Content-Type: multipart/form-data; boundary=----123
+
+------123
+Content-Disposition: form-data; name="file"; filename="corrupt.aiff"
+Content-Type: audio/aiff
+
+< ./test-files/corrupt.aiff
+------123--
+
+### Test 7: File Size Limit (Multer)
+# What to look for:
+# - Status: 400
+# - Response body: "File too large"
+# Note: Temporarily set multer limit to 1 byte for this test, or use a very large file
+POST {{host}}/convert
+Content-Type: multipart/form-data; boundary=----123
+
+------123
+Content-Disposition: form-data; name="file"; filename="oversized.aiff"
+Content-Type: audio/aiff
+
+< ./test-files/oversized.aiff
+------123--
+
+### Test 8: Queue Processing Multiple Files
+# What to look for:
+# - All responses Status: 200
+# - Each response contains unique "File converted and saved to" with different paths
+# - Responses come in sequence (queue behavior)
+POST {{host}}/convert
+Content-Type: multipart/form-data; boundary=----123
+
+------123
+Content-Disposition: form-data; name="file"; filename="test1.aiff"
+Content-Type: audio/aiff
+
+< ./test-files/test1.aiff
+------123--
+
+POST {{host}}/convert
+Content-Type: multipart/form-data; boundary=----123
+
+------123
+Content-Disposition: form-data; name="file"; filename="test2.aiff"
+Content-Type: audio/aiff
+
+< ./test-files/test2.aiff
+------123--
