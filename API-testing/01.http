@@ -11,10 +11,10 @@ POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
 ------123
-Content-Disposition: form-data; name="file"; filename="test.aiff"
+Content-Disposition: form-data; name="file"; filename="short.aiff"
 Content-Type: audio/aiff
 
-< ./test-files/test.aiff
+< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/short.aiff
 ------123--
 
 ### Test 2: Reject Non-AIFF File (MP3)
