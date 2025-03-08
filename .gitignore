@@ -1,3 +1,4 @@
 /node_modules
 .env
 /ignored
+.DS_Store  # For macOS users
