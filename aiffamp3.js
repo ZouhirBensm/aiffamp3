@@ -103,11 +103,6 @@ async function getFileSize(filePath) {
   }
 }
 
-
-
-
-
-
 // Process queue
 async function processQueue() {
   if (processing || queue.length === 0) return;
@@ -147,7 +142,6 @@ async function processQueue() {
     processQueue();
   }
 }
-
 
 
 
