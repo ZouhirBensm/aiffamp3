@@ -13,7 +13,22 @@ const PORT = process.env.PORT;
 app.use('/public', express.static('public'));
 
 // Configure multer for file uploads
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({
+  dest: 'uploads/',
+  fileFilter: (req, file, cb) => {
+    // Check file extension
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext !== '.aiff' && ext !== '.aif') {
+      return cb(new Error('Only AIFF files are allowed'));
+    }
+    cb(null, true);
+  },
+  limits: {
+    fileSize: 1024 * 1024 * 1024 // Optional: 1GB limit as an example
+  }
+}).single('file');
+
+
 
 // Queue management
 const MAX_MEMORY = 32 * 1024 * 1024 * 1024; // 32GB in bytes
@@ -144,12 +159,10 @@ async function processQueue() {
 }
 
 
-
 // Conversion endpoint with rate limiter
-app.post('/convert', rateLimiter, upload.single('file'), async (req, res) => {
+app.post('/convert', rateLimiter, upload, async (req, res) => {
   await ensureUploadDir();
 
-  // Log IP
   const ip = req.ip || req.connection.remoteAddress;
   await logRequest(ip);
 
@@ -161,7 +174,6 @@ app.post('/convert', rateLimiter, upload.single('file'), async (req, res) => {
   const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
   const fileSize = await getFileSize(filePath);
 
-  // Check memory constraints
   if (currentQueueSize + fileSize > MAX_MEMORY) {
     await fs.unlink(filePath).catch(() => { });
     return res.status(503).send('Server memory limit reached. Please try again later.');
@@ -170,7 +182,16 @@ app.post('/convert', rateLimiter, upload.single('file'), async (req, res) => {
   currentQueueSize += fileSize;
   queue.push({ req, res, filePath, outputPath });
   processQueue();
+}, (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).send('File too large');
+    }
+    return res.status(400).send(err.message);
+  }
+  next(err);
 });
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -192,9 +213,3 @@ process.on('SIGTERM', gracefulShutdown);
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
-
-
-
-
-
-
