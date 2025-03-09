@@ -39,6 +39,9 @@ const queue = [];
 let currentQueueSize = 0; // in bytes
 
 
+// Maximum number of items in the queue
+const MAX_QUEUE_SIZE = 1;
+
 
 // Rate limiter configuration
 const RATE_LIMIT = {
@@ -179,10 +182,19 @@ app.post(
     const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
     const fileSize = await getFileSize(filePath);
 
+
     if (currentQueueSize + fileSize > MAX_MEMORY) {
       await fs.unlink(filePath).catch(() => { });
       return res.status(503).send('Server memory limit reached. Please try again later.');
     }
+
+
+    // Check queue size (number of items)
+    if (queue.length >= MAX_QUEUE_SIZE) {
+      await fs.unlink(filePath).catch(() => { });
+      return res.status(503).send('Server is busy. Please try again later.');
+    }
+
 
     currentQueueSize += fileSize;
     queue.push({ req, res, filePath, outputPath });
