@@ -6,8 +6,10 @@
 # What to look for:
 # - Status: 200
 # - Response contains "File converted and saved to"
-# - File path in response matches expected pattern
-# ✔
+# - File path in response matches expected pattern (e.g., /path/to/converted/<random>.mp3)
+# - converted/ directory contains the new MP3 file
+# - request_logs.txt has one new entry
+# ✅
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
@@ -18,11 +20,15 @@ Content-Type: audio/aiff
 < /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/med30.aiff
 ------123--
 
+---
+
 ### Test 2: Reject Non-AIFF File (MP3)
 # What to look for:
 # - Status: 400
 # - Response body: "Only AIFF files are allowed"
-# ✔
+# - uploads/ and converted/ directories remain empty
+# - request_logs.txt has no new entry (rejected before logging)
+# ✅
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
@@ -33,23 +39,30 @@ Content-Type: audio/mpeg
 < /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audios-pretreatments/short.mp3
 ------123--
 
+---
+
 ### Test 3: No File Uploaded
 # What to look for:
 # - Status: 400
 # - Response body: "No file uploaded"
-# ✔
+# - uploads/ and converted/ directories remain empty
+# - request_logs.txt has one new entry
+# ✅
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
 ------123--
 
+---
+
 ### Test 4: Rate Limit Exceeded
 # What to look for (after 10 successful requests):
-# - Status: 429
-# - Response body: "Too many requests. Please try again later."
-# Note: Run this 11 times in quick succession (within 15 minutes)
-# Figure out better way to do this
-# ✔
+# - First 10 requests: Status 200 with save message
+# - 11th request: Status 429 with "Too many requests. Please try again later."
+# - converted/ has 10 files
+# - request_logs.txt has 10 entries
+# Note: Run this 11 times within 15 minutes (manually click "Send Request" quickly)
+# ✅
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
@@ -60,12 +73,17 @@ Content-Type: audio/aiff
 < /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/short.aiff
 ------123--
 
-### Test 5: File Exceeds Memory Limit
+---
+
+### Test 5: File Exceeds Memory Limit (Preliminary Check)
 # What to look for:
 # - Status: 503
-# - Response body: "Server memory limit reached. Please try again later."
-# Note: Requires a file > 32GB, or mock the server to simulate this
-# ✔
+# - Response body: "Server memory limit reached. Please try again later. 1"
+# - uploads/ and converted/ remain empty
+# - request_logs.txt has no new entry
+# Note: Simulate with a large Content-Length header; temporarily set MAX_MEMORY to 1MB for testing
+# ✅
+
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
@@ -76,12 +94,18 @@ Content-Type: audio/aiff
 < /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/med60.aiff
 ------123--
 
+---
+
+
 ### Test 6: Invalid File (Corrupted AIFF)
 # What to look for:
 # - Status: 500
 # - Response body: "Error converting file"
-# Note: Use a corrupted AIFF file that FFmpeg can't process
-# ✔
+# - uploads/ is empty after cleanup
+# - converted/ has no new file
+# - request_logs.txt has one new entry
+# - Console logs FFmpeg error
+# ✅
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
@@ -92,28 +116,16 @@ Content-Type: audio/aiff
 < /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-4/corrupt_short.aiff
 ------123--
 
+---
+
 ### Test 7: File Size Limit (Multer)
 # What to look for:
 # - Status: 400
 # - Response body: "File too large"
-# Note: Temporarily set multer limit to 1 byte for this test, or use a very large file
-# ✔
-POST {{host}}/convert
-Content-Type: multipart/form-data; boundary=----123
-
-------123
-Content-Disposition: form-data; name="file"; filename="med60.aiff"
-Content-Type: audio/aiff
-
-< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/med60.aiff
-------123--
-
-### Test 8: Queue Processing Multiple Files
-# What to look for:
-# - All responses Status: 200
-# - Each response contains unique "File converted and saved to" with different paths
-# - Responses come in sequence (queue behavior)
-# ✔
+# - uploads/ and converted/ remain empty
+# - request_logs.txt has no new entry
+# Note: Temporarily set multer fileSize limit to 1 byte
+# ✅
 POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
@@ -123,3 +135,33 @@ Content-Type: audio/aiff
 
 < /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/med30.aiff
 ------123--
+
+---
+
+### Test 8: Queue Limit Exceeded (Processing Ongoing)
+# What to look for:
+# - First request: Status 200 with save message
+# - Second request (sent immediately after): Status 503 with "Server queue limit reached"
+# - converted/ has one file from first request
+# - request_logs.txt has one entry
+# Note: Send second request while first is still processing
+# ✅
+POST {{host}}/convert
+Content-Type: multipart/form-data; boundary=----123
+
+------123
+Content-Disposition: form-data; name="file"; filename="med30.aiff"
+Content-Type: audio/aiff
+
+< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/med30.aiff
+------123--
+
+---
+
+### Test 9: Static File Serving
+# What to look for:
+# - Status: 200
+# - Response body: Contents of test.txt
+# - No impact on queue or logs
+# Note: Place a test.txt file in public/ directory
+GET {{host}}/public/test.txt
