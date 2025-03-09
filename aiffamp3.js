@@ -38,6 +38,8 @@ let processing = false;
 const queue = [];
 let currentQueueSize = 0; // in bytes
 
+
+
 // Rate limiter configuration
 const RATE_LIMIT = {
   maxRequests: 10, // Max requests per IP
