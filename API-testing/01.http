@@ -14,10 +14,10 @@ POST {{host}}/convert
 Content-Type: multipart/form-data; boundary=----123
 
 ------123
-Content-Disposition: form-data; name="file"; filename="med30.aiff"
+Content-Disposition: form-data; name="file"; filename="med60.aiff"
 Content-Type: audio/aiff
 
-< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/med30.aiff
+< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-3/med60.aiff
 ------123--
 
 ---
