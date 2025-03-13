@@ -1,3 +1,4 @@
+//123
 const express = require('express');
 const dotenv = require('dotenv');
 dotenv.config();
@@ -22,7 +23,7 @@ const multerConfig = {
     cb(null, true);
   },
   limits: {
-    fileSize: 1 * 1024 * 1024 * 1024 // 1GB limit
+    fileSize:1 * 1024 * 1024 *  1024 // 1GB limit
     // fileSize: 1024 * 1024 // 100MB limit for testing
   }
 };
