@@ -1,6 +1,7 @@
 //123
 const express = require('express');
 const dotenv = require('dotenv');
+const pocRouter = require('./pocRouter');
 dotenv.config();
 const multer = require('multer');
 const { exec } = require('child_process');
@@ -11,6 +12,9 @@ const app = express();
 const PORT = process.env.PORT;
 
 app.use('/public', express.static('public'));
+
+
+
 
 // Configure multer for file uploads
 const multerConfig = {
@@ -46,6 +50,8 @@ const RATE_LIMIT = {
   windowMs: 15 * 60 * 1000,
   requests: new Map()
 };
+
+
 
 // Custom rate limiter middleware
 const rateLimiter = async (req, res, next) => {
@@ -161,6 +167,18 @@ async function processQueue() {
   }
 }
 
+
+
+
+
+
+app.use('/poc', pocRouter)
+
+
+
+
+
+
 // Conversion endpoint
 app.post(
   '/convert',
@@ -207,7 +225,7 @@ app.post(
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).send('Something went wrong!');
+  res.status(500).send('Something went wrong! 1');
 });
 
 const gracefulShutdown = async () => {
