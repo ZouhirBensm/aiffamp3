@@ -23,15 +23,15 @@ const multerConfig = {
     cb(null, true);
   },
   limits: {
-    // fileSize:1 * 1024 * 1024 *  1024 // 1GB limit
-    fileSize: 1024 * 1024 // 100MB limit for testing
+    fileSize:1 * 1024 * 1024 *  1024 // 1GB limit
+    // fileSize: 1024 * 1024 // 100MB limit for testing
   }
 };
 const upload = multer(multerConfig);
 
 // Queue management
-const MAX_MEMORY = 32 * 1024 * 1024 * 1024; // 32GB in bytes
-// const MAX_MEMORY = 590 * 1024 * 1024; // 590MB for testing with med60.aiff which is 649MB
+// const MAX_MEMORY = 32 * 1024 * 1024 * 1024; // 32GB in bytes
+const MAX_MEMORY = 590 * 1024 * 1024; // 590MB for testing with med60.aiff which is 649MB
 // const MAX_MEMORY = 1024 * 1024; // 1MB for testing
 let processing = false;
 const queue = [];
