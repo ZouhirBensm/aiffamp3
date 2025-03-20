@@ -29,6 +29,7 @@ const multerConfig = {
 };
 const upload = multer(multerConfig);
 
+// HERE
 // Queue management
 // const MAX_MEMORY = 32 * 1024 * 1024 * 1024; // 32GB in bytes
 const MAX_MEMORY = 590 * 1024 * 1024; // 590MB for testing with med60.aiff which is 649MB
@@ -80,13 +81,14 @@ const checkLimits = (req, res, next) => {
 
   // Check memory based on Content-Length header (if available)
   const contentLength = parseInt(req.headers['content-length'], 10);
-  console.log("\n\n->** contentLength: ", contentLength)
+  // console.log("\n\n->** contentLength: ", contentLength)
   // const contentLength = NaN // For testing
-  if (contentLength && !isNaN(contentLength)) {
-    if (currentQueueSize + contentLength > MAX_MEMORY) {
-      return res.status(503).send('Server memory limit reached. Please try again later. 1');
-    }
-  }
+
+  // if (contentLength && !isNaN(contentLength)) {
+  //   if (currentQueueSize + contentLength > MAX_MEMORY) {
+  //     return res.status(503).send('Server memory limit reached. Please try again later. 1');
+  //   }
+  // }
 
   next();
 };
