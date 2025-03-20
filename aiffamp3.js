@@ -23,8 +23,8 @@ const multerConfig = {
     cb(null, true);
   },
   limits: {
-    fileSize:1 * 1024 * 1024 *  1024 // 1GB limit
-    // fileSize: 1024 * 1024 // 100MB limit for testing
+    // fileSize:1 * 1024 * 1024 *  1024 // 1GB limit
+    fileSize: 1024 * 1024 // 100MB limit for testing
   }
 };
 const upload = multer(multerConfig);
