@@ -80,6 +80,7 @@ const checkLimits = (req, res, next) => {
 
   // Check memory based on Content-Length header (if available)
   const contentLength = parseInt(req.headers['content-length'], 10);
+  console.log("\n\n->** contentLength: ", contentLength)
   // const contentLength = NaN // For testing
   if (contentLength && !isNaN(contentLength)) {
     if (currentQueueSize + contentLength > MAX_MEMORY) {
