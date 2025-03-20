@@ -1,6 +1,6 @@
 {
   "name": "aiffamp3",
-  "version": "v1.0.0",
+  "version": "master_20-03-2025",
   "description": "The Audio Converter Tool is a Node.js-based utility designed to provide a seamless solution for converting audio files between AIFF (Audio Interchange File Format) and MP3 (MPEG Audio Layer III) formats. This tool allows users to easily convert high-quality AIFF files into space-efficient MP3s and vice versa, making it versatile for various audio processing needs. Whether you’re optimizing audio files for storage, transferring music, or needing compatibility with different media players, this tool simplifies the conversion process while maintaining audio fidelity.",
   "main": "aifftomp3.js",
   "scripts": {
