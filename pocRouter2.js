@@ -197,7 +197,7 @@ router.post(
 
 
 
-router.get('/webpage1', (req, res) => {
+router.get('/webpage', (req, res) => {
   const filePath = path.join(__dirname, 'public/poc/html/webpage2.html');
   console.log('File Path:', filePath); // Log the resolved path
   res.sendFile(filePath, (err) => {
