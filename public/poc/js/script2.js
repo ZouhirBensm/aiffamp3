@@ -10,7 +10,6 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
         return;
     }
 
-    // Show file size in MB
     const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
     statusDiv.innerHTML = `Selected file: ${fileSizeMB} MB. Sending to server...`;
 
@@ -18,34 +17,53 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     formData.append('file', file);
 
     try {
-        const response = await fetch('http://localhost:3007/poc/convert', {
+        // Step 1: Upload file and get task ID
+        const uploadResponse = await fetch('http://localhost:3007/poc/convert', {
             method: 'POST',
             body: formData
         });
 
-        // Update status once server receives the request
-        statusDiv.innerHTML = `File received by server (${fileSizeMB} MB). Processing...`;
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw { status: response.status, message: errorText };
+        if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            throw { status: uploadResponse.status, message: errorText };
         }
 
-        // Handle successful response (file download)
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'converted.mp3';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        const { taskId } = await uploadResponse.json();
+        statusDiv.innerHTML = `File received by server (${fileSizeMB} MB). Queued...`;
 
-        // Clear status after success
-        statusDiv.innerHTML = 'Download complete!';
+        // Step 2: Poll status
+        const pollStatus = async () => {
+            const statusResponse = await fetch(`http://localhost:3007/poc/status/${taskId}`);
+            if (!statusResponse.ok) {
+                const errorText = await statusResponse.text();
+                throw { status: statusResponse.status, message: errorText };
+            }
+
+            const { status, progress } = await statusResponse.json();
+
+            if (status === 'error') {
+                throw { status: 500, message: 'Server error during processing' };
+            }
+
+            statusDiv.innerHTML = `File (${fileSizeMB} MB): ${status} (${progress}%)`;
+
+            if (status === 'completed') {
+                // Step 3: Download file
+                const downloadUrl = `http://localhost:3007/poc/download/${taskId}`;
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'converted.mp3';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                statusDiv.innerHTML = 'Download complete!';
+            } else {
+                setTimeout(pollStatus, 1000); // Poll every 1 second
+            }
+        };
+
+        pollStatus();
     } catch (error) {
-        // Display error code and message in an alert
         alert(`Error ${error.status || 'Unknown'}: ${error.message || 'Something went wrong'}`);
         statusDiv.innerHTML = '';
     }

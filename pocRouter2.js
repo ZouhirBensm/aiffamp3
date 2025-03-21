@@ -5,6 +5,10 @@ const path = require('path');
 const fs = require('fs').promises;
 const router = express.Router();
 
+
+// In-memory task store (for simplicity; use a DB in production)
+const tasks = new Map();
+
 // Configure multer for file uploads
 const multerConfig = {
   dest: 'uploads/',
@@ -34,6 +38,15 @@ const RATE_LIMIT = {
   windowMs: 15 * 60 * 1000,
   requests: new Map()
 };
+
+
+
+// Generate a simple task ID
+function generateTaskId() {
+  return Math.random().toString(36).substring(2, 10);
+}
+
+
 
 // Custom rate limiter middleware
 const rateLimiter = async (req, res, next) => {
@@ -107,78 +120,88 @@ async function getFileSize(filePath) {
 }
 
 
-// Process queue
-async function processQueue() {
+
+// Updated processQueue with status updates
+async function processQueueWithStatus(taskId) {
   if (processing || queue.length === 0) return;
 
   processing = true;
-  const { req, res, filePath, outputPath } = queue.shift();
+  const { taskId: currentTaskId, filePath, outputPath } = queue.shift();
+  tasks.set(currentTaskId, { status: 'processing', progress: 0, filePath, outputPath });
 
   try {
-    await new Promise((resolve, reject) => {
-      exec(`ffmpeg -i ${filePath} ${outputPath}`, (error) => {
-        if (error) reject(error);
-        else resolve();
+      await new Promise((resolve, reject) => {
+          // Simulate some progress (since FFmpeg doesn't provide it natively here)
+          const ffmpeg = exec(`ffmpeg -i ${filePath} ${outputPath}`, (error) => {
+              if (error) reject(error);
+              else resolve();
+          });
+
+          // Fake progress for simplicity (in reality, you'd parse FFmpeg stderr)
+          let progress = 0;
+          const interval = setInterval(() => {
+              progress += 25;
+              if (progress <= 100) {
+                  tasks.set(currentTaskId, { ...tasks.get(currentTaskId), progress });
+              }
+          }, 1000); // Update every second
+
+          ffmpeg.on('close', () => clearInterval(interval));
       });
-    });
 
-    // Send the converted file
-    res.download(outputPath, 'converted.mp3', async (err) => {
-      if (err) {
-        console.error('Error sending file:', err);
-      }
+      tasks.set(currentTaskId, { status: 'completed', progress: 100, filePath, outputPath });
 
-      // Cleanup
       currentQueueSize -= await getFileSize(filePath);
-      await fs.unlink(filePath).catch(() => { });
-      await fs.unlink(outputPath).catch(() => { });
-
+      await fs.unlink(filePath).catch(() => {});
       processing = false;
-      processQueue(); // Process next in queue
-    });
-
+      processQueueWithStatus(tasks.keys().next().value); // Next in queue
   } catch (error) {
-    console.error('Conversion error:', error);
-    res.status(500).send('Error converting file');
-    currentQueueSize -= await getFileSize(filePath);
-    await fs.unlink(filePath).catch(() => { });
-    processing = false;
-    processQueue();
+      console.error('Conversion error:', error);
+      tasks.set(currentTaskId, { status: 'error', progress: 0, filePath, outputPath });
+      currentQueueSize -= await getFileSize(filePath);
+      await fs.unlink(filePath).catch(() => {});
+      processing = false;
+      processQueueWithStatus(tasks.keys().next().value);
   }
 }
 
 
 
 
-
-// Conversion endpoint
+// Existing /convert endpoint (modified)
 router.post(
   '/convert',
   rateLimiter,
   checkLimits,
   upload.single('file'),
   async (req, res) => {
-    await ensureUploadDir();
+      await ensureUploadDir();
 
-    const ip = req.ip || req.connection.remoteAddress;
-    await logRequest(ip);
+      const ip = req.ip || req.connection.remoteAddress;
+      await logRequest(ip);
 
-    if (!req.file) {
-      return res.status(400).send('No file uploaded');
-    }
+      if (!req.file) {
+          return res.status(400).send('No file uploaded');
+      }
 
-    const filePath = req.file.path;
-    const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
-    const fileSize = await getFileSize(filePath);
+      const filePath = req.file.path;
+      const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
+      const fileSize = await getFileSize(filePath);
 
-    if (currentQueueSize + fileSize > MAX_MEMORY) {
-      await fs.unlink(filePath).catch(() => {});
-      return res.status(503).send('Server memory limit reached. Please try again later.');
-    }
+      if (currentQueueSize + fileSize > MAX_MEMORY) {
+          await fs.unlink(filePath).catch(() => {});
+          return res.status(503).send('Server memory limit reached. Please try again later.');
+      }
 
-    currentQueueSize += fileSize;
-    queue.push({ req, res, filePath, outputPath });
-    processQueue();
+      const taskId = generateTaskId();
+      tasks.set(taskId, { status: 'queued', progress: 0, filePath, outputPath });
+
+      currentQueueSize += fileSize;
+      queue.push({ taskId, filePath, outputPath });
+      processQueueWithStatus(taskId);
+
+      // Return task ID immediately
+      res.json({ taskId });
   },
   (err, req, res, next) => {
     if (err instanceof multer.MulterError) {
@@ -192,6 +215,43 @@ router.post(
     next(err);
   }
 );
+
+
+
+// New status endpoint
+router.get('/status/:taskId', (req, res) => {
+  const taskId = req.params.taskId;
+  const task = tasks.get(taskId);
+
+  if (!task) {
+      return res.status(404).send('Task not found');
+  }
+
+  res.json({ status: task.status, progress: task.progress });
+});
+
+
+// New download endpoint
+router.get('/download/:taskId', async (req, res) => {
+  const taskId = req.params.taskId;
+  const task = tasks.get(taskId);
+
+  if (!task || task.status !== 'completed') {
+      return res.status(404).send('File not ready or not found');
+  }
+
+  res.download(task.outputPath, 'converted.mp3', async (err) => {
+      if (err) {
+          console.error('Error sending file:', err);
+          return res.status(500).send('Error downloading file');
+      }
+
+      // Cleanup after download
+      await fs.unlink(task.outputPath).catch(() => {});
+      tasks.delete(taskId);
+  });
+});
+
 
 
 
