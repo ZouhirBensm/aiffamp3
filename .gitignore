@@ -4,3 +4,4 @@
 /converted
 .DS_Store
 request_logs.txt
+/uploads/*
