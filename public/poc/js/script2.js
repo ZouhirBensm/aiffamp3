@@ -17,7 +17,6 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     formData.append('file', file);
 
     try {
-        // Step 1: Upload file and get task ID
         const uploadResponse = await fetch('http://localhost:3007/poc/convert', {
             method: 'POST',
             body: formData
@@ -31,7 +30,6 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
         const { taskId } = await uploadResponse.json();
         statusDiv.innerHTML = `File received by server (${fileSizeMB} MB). Queued...`;
 
-        // Step 2: Poll status
         const pollStatus = async () => {
             const statusResponse = await fetch(`http://localhost:3007/poc/status/${taskId}`);
             if (!statusResponse.ok) {
@@ -48,7 +46,6 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
             statusDiv.innerHTML = `File (${fileSizeMB} MB): ${status} (${progress}%)`;
 
             if (status === 'completed') {
-                // Step 3: Download file
                 const downloadUrl = `http://localhost:3007/poc/download/${taskId}`;
                 const a = document.createElement('a');
                 a.href = downloadUrl;
