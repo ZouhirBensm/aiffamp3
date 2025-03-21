@@ -1,20 +1,9 @@
-//123
 const express = require('express');
-const dotenv = require('dotenv');
-const pocRouter = require('./pocRouter2');
-dotenv.config();
 const multer = require('multer');
 const { exec } = require('child_process');
-const fs = require('fs').promises;
 const path = require('path');
-
-const app = express();
-const PORT = process.env.PORT;
-
-app.use('/public', express.static('public'));
-
-
-
+const fs = require('fs').promises;
+const router = express.Router();
 
 // Configure multer for file uploads
 const multerConfig = {
@@ -27,22 +16,17 @@ const multerConfig = {
     cb(null, true);
   },
   limits: {
-    fileSize: 1.5 * 1024 * 1024 *  1024 // 1GB limit
-    // fileSize: 1024 * 1024 // 100MB limit for testing
+    fileSize: 1.5 * 1024 * 1024 * 1024 // 1GB limit
   }
 };
 const upload = multer(multerConfig);
 
-
 // Queue management
 const MAX_MEMORY = 32 * 1024 * 1024 * 1024; // 32GB in bytes
-// const MAX_MEMORY = 590 * 1024 * 1024; // 590MB for testing with med60.aiff which is 649MB
-// const MAX_MEMORY = 1024 * 1024; // 1MB for testing
 let processing = false;
 const queue = [];
 let currentQueueSize = 0; // in bytes
-const MAX_QUEUE_SIZE = 6; // Max 6 item in queue
-// const MAX_QUEUE_SIZE = 1; // Max 1 item in queue for testing
+const MAX_QUEUE_SIZE = 6; // Max 6 items in queue
 
 // Rate limiter configuration
 const RATE_LIMIT = {
@@ -50,8 +34,6 @@ const RATE_LIMIT = {
   windowMs: 15 * 60 * 1000,
   requests: new Map()
 };
-
-
 
 // Custom rate limiter middleware
 const rateLimiter = async (req, res, next) => {
@@ -79,28 +61,19 @@ const rateLimiter = async (req, res, next) => {
 
 // Middleware to check queue size and memory before upload
 const checkLimits = (req, res, next) => {
-  console.log("queue.length, MAX_QUEUE_SIZE:", queue.length, MAX_QUEUE_SIZE);
-  // Check if server is busy queue is full
   if (queue.length >= MAX_QUEUE_SIZE) {
     return res.status(503).send('Server queue limit reached. Please try again later.');
   }
 
-  // Check memory based on Content-Length header (if available)
   const contentLength = parseInt(req.headers['content-length'], 10);
-  // console.log("\n\n->** contentLength: ", contentLength)
-  // const contentLength = NaN // For testing
-
   if (contentLength && !isNaN(contentLength)) {
     if (currentQueueSize + contentLength > MAX_MEMORY) {
-      return res.status(503).send('Server memory limit reached. Please try again later. 1');
+      return res.status(503).send('Server memory limit reached. Please try again later.');
     }
   }
 
   next();
 };
-
-// Log file path
-const logFile = path.join(__dirname, 'request_logs.txt');
 
 // Ensure uploads directory exists
 async function ensureUploadDir() {
@@ -116,7 +89,7 @@ async function logRequest(ip) {
   const timestamp = new Date().toISOString();
   const logEntry = `${timestamp} - IP: ${ip}\n`;
   try {
-    await fs.appendFile(logFile, logEntry);
+    await fs.appendFile(path.join(__dirname, 'request_logs.txt'), logEntry);
   } catch (err) {
     console.error('Error writing to log file:', err);
   }
@@ -134,7 +107,6 @@ async function getFileSize(filePath) {
 }
 
 
-
 // Process queue
 async function processQueue() {
   if (processing || queue.length === 0) return;
@@ -150,22 +122,28 @@ async function processQueue() {
       });
     });
 
-    const finalOutputPath = path.join(__dirname, 'converted', `${path.basename(filePath)}.mp3`);
-    await fs.mkdir(path.join(__dirname, 'converted'), { recursive: true });
-    await fs.rename(outputPath, finalOutputPath);
+    // Send the converted file
+    res.download(outputPath, 'converted.mp3', async (err) => {
+      if (err) {
+        console.error('Error sending file:', err);
+      }
 
-    res.status(200).send(`File converted and saved to: ${finalOutputPath}`);
+      // Cleanup
+      currentQueueSize -= await getFileSize(filePath);
+      await fs.unlink(filePath).catch(() => { });
+      await fs.unlink(outputPath).catch(() => { });
 
-    currentQueueSize -= await getFileSize(filePath);
-    await fs.unlink(filePath).catch(() => {});
+      processing = false;
+      processQueue(); // Process next in queue
+    });
+
   } catch (error) {
     console.error('Conversion error:', error);
     res.status(500).send('Error converting file');
     currentQueueSize -= await getFileSize(filePath);
-    await fs.unlink(filePath).catch(() => {});
-  } finally {
+    await fs.unlink(filePath).catch(() => { });
     processing = false;
-    processQueue(); // Process next in queue
+    processQueue();
   }
 }
 
@@ -173,16 +151,8 @@ async function processQueue() {
 
 
 
-
-app.use('/poc', pocRouter)
-
-
-
-
-
-
 // Conversion endpoint
-app.post(
+router.post(
   '/convert',
   rateLimiter,
   checkLimits,
@@ -203,12 +173,11 @@ app.post(
 
     if (currentQueueSize + fileSize > MAX_MEMORY) {
       await fs.unlink(filePath).catch(() => {});
-      return res.status(503).send('Server memory limit reached. Please try again later. 2');
+      return res.status(503).send('Server memory limit reached. Please try again later.');
     }
 
     currentQueueSize += fileSize;
     queue.push({ req, res, filePath, outputPath });
-    // console.log("queue.length, MAX_QUEUE_SIZE:", queue.length, MAX_QUEUE_SIZE);
     processQueue();
   },
   (err, req, res, next) => {
@@ -224,21 +193,24 @@ app.post(
   }
 );
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something went wrong! 1');
+
+
+
+
+router.get('/webpage', (req, res) => {
+  const filePath = path.join(__dirname, 'public/poc/html/webpage2.html');
+  console.log('File Path:', filePath); // Log the resolved path
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('Error serving file:', err);
+      return res.status(500).send('Something went wrong! poc 1');
+    }
+  });
 });
 
-const gracefulShutdown = async () => {
-  console.log('Closing the app gracefully...');
-  await Promise.all(queue.map(item => fs.unlink(item.filePath).catch(() => {})));
-  process.exit(0);
-};
 
-process.on('SIGINT', gracefulShutdown);
-process.on('SIGTERM', gracefulShutdown);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+
+
+
+module.exports = router;
