@@ -1,4 +1,6 @@
 //123
+
+// This code is essentially holds solely the mechanics of conversion. The mechanics of polling the server to get an update of where the conversion is at is not implemented here. The code here is kept as a reference so that I will be able to use to edit the code towards using multi-thread processing when the time to scale arives. I can simply also use this code to test out the conversion mechanics, debugging, and to help me identify any issues in the code currently used in production.
 const express = require('express');
 const dotenv = require('dotenv');
 const pocRouter = require('./pocRouter2');
@@ -135,8 +137,9 @@ async function getFileSize(filePath) {
 
 
 
-// Process queue
+// Process queue. This can have 4 different types on implementation.
 async function processQueue() {
+  // auto_save_mp3_queue_function.js
   if (processing || queue.length === 0) return;
 
   processing = true;
@@ -182,47 +185,47 @@ app.use('/poc', pocRouter)
 
 
 // Conversion endpoint
-app.post(
-  '/convert',
-  rateLimiter,
-  checkLimits,
-  upload.single('file'),
-  async (req, res) => {
-    await ensureUploadDir();
+// app.post(
+//   '/convert',
+//   rateLimiter,
+//   checkLimits,
+//   upload.single('file'),
+//   async (req, res) => {
+//     await ensureUploadDir();
 
-    const ip = req.ip || req.connection.remoteAddress;
-    await logRequest(ip);
+//     const ip = req.ip || req.connection.remoteAddress;
+//     await logRequest(ip);
 
-    if (!req.file) {
-      return res.status(400).send('No file uploaded');
-    }
+//     if (!req.file) {
+//       return res.status(400).send('No file uploaded');
+//     }
 
-    const filePath = req.file.path;
-    const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
-    const fileSize = await getFileSize(filePath);
+//     const filePath = req.file.path;
+//     const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
+//     const fileSize = await getFileSize(filePath);
 
-    if (currentQueueSize + fileSize > MAX_MEMORY) {
-      await fs.unlink(filePath).catch(() => {});
-      return res.status(503).send('Server memory limit reached. Please try again later. 2');
-    }
+//     if (currentQueueSize + fileSize > MAX_MEMORY) {
+//       await fs.unlink(filePath).catch(() => {});
+//       return res.status(503).send('Server memory limit reached. Please try again later. 2');
+//     }
 
-    currentQueueSize += fileSize;
-    queue.push({ req, res, filePath, outputPath });
-    // console.log("queue.length, MAX_QUEUE_SIZE:", queue.length, MAX_QUEUE_SIZE);
-    processQueue();
-  },
-  (err, req, res, next) => {
-    if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).send('File too large');
-      }
-    }
-    if (err.message === 'Only AIFF files are allowed') {
-      return res.status(400).send(err.message);
-    }
-    next(err);
-  }
-);
+//     currentQueueSize += fileSize;
+//     queue.push({ req, res, filePath, outputPath });
+//     // console.log("queue.length, MAX_QUEUE_SIZE:", queue.length, MAX_QUEUE_SIZE);
+//     processQueue();
+//   },
+//   (err, req, res, next) => {
+//     if (err instanceof multer.MulterError) {
+//       if (err.code === 'LIMIT_FILE_SIZE') {
+//         return res.status(400).send('File too large');
+//       }
+//     }
+//     if (err.message === 'Only AIFF files are allowed') {
+//       return res.status(400).send(err.message);
+//     }
+//     next(err);
+//   }
+// );
 
 // Error handling middleware
 app.use((err, req, res, next) => {

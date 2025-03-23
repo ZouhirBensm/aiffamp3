@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const { exec } = require('child_process');
 const path = require('path');
-const fs = require('fs').promises;
+const fs = require('fs');
 const router = express.Router();
 
 // Configure multer for file uploads
@@ -155,14 +155,14 @@ async function processQueueWithStatus(taskId) {
         tasks.set(currentTaskId, { status: 'completed', progress: 100, filePath, outputPath });
 
         currentQueueSize -= await getFileSize(filePath);
-        await fs.unlink(filePath).catch(() => {});
+        await fs.unlink(filePath).catch(() => { });
         processing = false;
         processQueueWithStatus(tasks.keys().next().value);
     } catch (error) {
         console.error('Conversion error:', error);
         tasks.set(currentTaskId, { status: 'error', progress: 0, filePath, outputPath });
         currentQueueSize -= await getFileSize(filePath);
-        await fs.unlink(filePath).catch(() => {});
+        await fs.unlink(filePath).catch(() => { });
         processing = false;
         processQueueWithStatus(tasks.keys().next().value);
     }
@@ -189,7 +189,7 @@ router.post(
         const fileSize = await getFileSize(filePath);
 
         if (currentQueueSize + fileSize > MAX_MEMORY) {
-            await fs.unlink(filePath).catch(() => {});
+            await fs.unlink(filePath).catch(() => { });
             return res.status(503).send('Server memory limit reached. Please try again later.');
         }
 
@@ -242,7 +242,7 @@ router.get('/download/:taskId', async (req, res) => {
             return res.status(500).send('Error downloading file');
         }
 
-        await fs.unlink(task.outputPath).catch(() => {});
+        await fs.unlink(task.outputPath).catch(() => { });
         tasks.delete(taskId);
     });
 });
@@ -250,14 +250,28 @@ router.get('/download/:taskId', async (req, res) => {
 
 
 router.get('/webpage', (req, res) => {
-  const filePath = path.join(__dirname, 'public/poc/html/webpage2.html');
-  console.log('File Path:', filePath); // Log the resolved path
-  res.sendFile(filePath, (err) => {
-    if (err) {
-      console.error('Error serving file:', err);
-      return res.status(500).send('Something went wrong! poc 1');
-    }
-  });
+    console.log(process.env.ENV_NAV_URL);
+
+
+    const filePath = path.join(__dirname, 'public/poc/html/webpage2.html');
+
+    console.log('File Path:', filePath); // Log the resolved path
+
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+          console.error('Error reading file:', err);
+          return res.status(500).send('Something went wrong while reading the file!');
+        }
+
+        // Inject the environment variable into the script tag
+        const modifiedHtml = data.replace(
+            '</head>',
+            `<script>window.ENV_NAV_URL = "${process.env.ENV_NAV_URL || ''}";</script></head>`
+        );
+    
+        // Send the modified HTML to the client
+        res.send(modifiedHtml);
+      });
 });
 
 

@@ -1,3 +1,5 @@
+console.log('Environment Variable: window.ENV_NAV_URL:', window.ENV_NAV_URL);
+
 document.getElementById('uploadForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
@@ -16,8 +18,9 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     const formData = new FormData();
     formData.append('file', file);
 
+
     try {
-        const uploadResponse = await fetch('http://localhost:3007/poc/convert', {
+        const uploadResponse = await fetch(`${window.ENV_NAV_URL}/poc/convert`, {
             method: 'POST',
             body: formData
         });
@@ -31,7 +34,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
         statusDiv.innerHTML = `File received by server (${fileSizeMB} MB). Queued...`;
 
         const pollStatus = async () => {
-            const statusResponse = await fetch(`http://localhost:3007/poc/status/${taskId}`);
+            const statusResponse = await fetch(`${window.ENV_NAV_URL}/poc/status/${taskId}`);
             if (!statusResponse.ok) {
                 const errorText = await statusResponse.text();
                 throw { status: statusResponse.status, message: errorText };
@@ -46,7 +49,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
             statusDiv.innerHTML = `File (${fileSizeMB} MB): ${status} (${progress}%)`;
 
             if (status === 'completed') {
-                const downloadUrl = `http://localhost:3007/poc/download/${taskId}`;
+                const downloadUrl = `${window.ENV_NAV_URL}/poc/download/${taskId}`;
                 const a = document.createElement('a');
                 a.href = downloadUrl;
                 a.download = 'converted.mp3';
