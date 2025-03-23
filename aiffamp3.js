@@ -8,6 +8,7 @@ dotenv.config();
 const multer = require('multer');
 const { exec } = require('child_process');
 const fs = require('fs').promises;
+const fs_regular = require('fs');
 const path = require('path');
 
 const app = express();
@@ -226,6 +227,39 @@ app.use('/poc', pocRouter)
 //     next(err);
 //   }
 // );
+
+
+
+
+
+
+
+app.get('/', (req, res) => {
+    console.log(process.env.ENV_NAV_URL);
+
+
+    const filePath = path.join(__dirname, 'public/poc/html/webpage2.html');
+
+    console.log('File Path:', filePath); // Log the resolved path
+
+    fs_regular.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+          console.error('Error reading file:', err);
+          return res.status(500).send('Something went wrong while reading the file!');
+        }
+
+        // Inject the environment variable into the script tag
+        const modifiedHtml = data.replace(
+            '</head>',
+            `<script>window.ENV_NAV_URL = "${process.env.ENV_NAV_URL || ''}";</script></head>`
+        );
+    
+        // Send the modified HTML to the client
+        res.send(modifiedHtml);
+      });
+});
+
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {

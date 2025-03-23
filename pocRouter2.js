@@ -2,7 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const { exec } = require('child_process');
 const path = require('path');
-const fs = require('fs');
+const fs_regular = require('fs');
+const fs = require('fs').promises;
 const router = express.Router();
 
 // Configure multer for file uploads
@@ -249,30 +250,30 @@ router.get('/download/:taskId', async (req, res) => {
 
 
 
-router.get('/webpage', (req, res) => {
-    console.log(process.env.ENV_NAV_URL);
+// router.get('/webpage', (req, res) => {
+//     console.log(process.env.ENV_NAV_URL);
 
 
-    const filePath = path.join(__dirname, 'public/poc/html/webpage2.html');
+//     const filePath = path.join(__dirname, 'public/poc/html/webpage2.html');
 
-    console.log('File Path:', filePath); // Log the resolved path
+//     console.log('File Path:', filePath); // Log the resolved path
 
-    fs.readFile(filePath, 'utf8', (err, data) => {
-        if (err) {
-          console.error('Error reading file:', err);
-          return res.status(500).send('Something went wrong while reading the file!');
-        }
+//     fs_regular.readFile(filePath, 'utf8', (err, data) => {
+//         if (err) {
+//           console.error('Error reading file:', err);
+//           return res.status(500).send('Something went wrong while reading the file!');
+//         }
 
-        // Inject the environment variable into the script tag
-        const modifiedHtml = data.replace(
-            '</head>',
-            `<script>window.ENV_NAV_URL = "${process.env.ENV_NAV_URL || ''}";</script></head>`
-        );
+//         // Inject the environment variable into the script tag
+//         const modifiedHtml = data.replace(
+//             '</head>',
+//             `<script>window.ENV_NAV_URL = "${process.env.ENV_NAV_URL || ''}";</script></head>`
+//         );
     
-        // Send the modified HTML to the client
-        res.send(modifiedHtml);
-      });
-});
+//         // Send the modified HTML to the client
+//         res.send(modifiedHtml);
+//       });
+// });
 
 
 
