@@ -17,7 +17,8 @@ const multerConfig = {
         cb(null, true);
     },
     limits: {
-        fileSize: 1.5 * 1024 * 1024 * 1024 // 1GB limit
+        fileSize: 1127 * 1024 * 1024 // 10% over 1GB
+        // fileSize: 1.5 * 1024 * 1024 * 1024 // 1.5GB limit
     }
 };
 const upload = multer(multerConfig);
@@ -206,7 +207,7 @@ router.post(
     (err, req, res, next) => {
         if (err instanceof multer.MulterError) {
             if (err.code === 'LIMIT_FILE_SIZE') {
-                return res.status(400).send('File too large');
+                return res.status(413).send('File too large 1');
             }
         }
         if (err.message === 'Only AIFF files are allowed') {
@@ -269,7 +270,7 @@ router.get('/download/:taskId', async (req, res) => {
 //             '</head>',
 //             `<script>window.ENV_NAV_URL = "${process.env.ENV_NAV_URL || ''}";</script></head>`
 //         );
-    
+
 //         // Send the modified HTML to the client
 //         res.send(modifiedHtml);
 //       });

@@ -30,7 +30,7 @@ const multerConfig = {
     cb(null, true);
   },
   limits: {
-    fileSize: 1.5 * 1024 * 1024 *  1024 // 1GB limit
+    fileSize: 1.5 * 1024 * 1024 * 1024 // 1GB limit
     // fileSize: 1024 * 1024 // 100MB limit for testing
   }
 };
@@ -161,12 +161,12 @@ async function processQueue() {
     res.status(200).send(`File converted and saved to: ${finalOutputPath}`);
 
     currentQueueSize -= await getFileSize(filePath);
-    await fs.unlink(filePath).catch(() => {});
+    await fs.unlink(filePath).catch(() => { });
   } catch (error) {
     console.error('Conversion error:', error);
     res.status(500).send('Error converting file');
     currentQueueSize -= await getFileSize(filePath);
-    await fs.unlink(filePath).catch(() => {});
+    await fs.unlink(filePath).catch(() => { });
   } finally {
     processing = false;
     processQueue(); // Process next in queue
@@ -235,29 +235,37 @@ app.use('/poc', pocRouter)
 
 
 app.get('/', (req, res) => {
-    console.log(process.env.ENV_NAV_URL);
+  console.log(process.env.ENV_NAV_URL);
 
 
-    const filePath = path.join(__dirname, 'public/poc/html/webpage2.html');
+  const filePath = path.join(__dirname, 'public/poc/html/webpage2.html');
 
-    console.log('File Path:', filePath); // Log the resolved path
+  console.log('File Path:', filePath); // Log the resolved path
 
-    fs_regular.readFile(filePath, 'utf8', (err, data) => {
-        if (err) {
-          console.error('Error reading file:', err);
-          return res.status(500).send('Something went wrong while reading the file!');
-        }
+  fs_regular.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      console.error('Error reading file:', err);
+      return res.status(500).send('Something went wrong while reading the file!');
+    }
 
-        // Inject the environment variable into the script tag
-        const modifiedHtml = data.replace(
-            '</head>',
-            `<script>window.ENV_NAV_URL = "${process.env.ENV_NAV_URL || ''}";</script></head>`
-        );
-    
-        // Send the modified HTML to the client
-        res.send(modifiedHtml);
-      });
+    // Inject the environment variable into the script tag
+    const modifiedHtml = data.replace(
+      '</head>',
+      `<script>window.ENV_NAV_URL = "${process.env.ENV_NAV_URL || ''}";</script></head>`
+    );
+
+    // Send the modified HTML to the client
+    res.send(modifiedHtml);
+  });
 });
+
+
+// Route to handle NGINX-forwarded 413 errors
+app.get('/error', (req, res) => {
+  res.status(413).json({ error: 'File too large 2' });
+});
+
+
 
 
 
@@ -269,7 +277,7 @@ app.use((err, req, res, next) => {
 
 const gracefulShutdown = async () => {
   console.log('Closing the app gracefully...');
-  await Promise.all(queue.map(item => fs.unlink(item.filePath).catch(() => {})));
+  await Promise.all(queue.map(item => fs.unlink(item.filePath).catch(() => { })));
   process.exit(0);
 };
 
