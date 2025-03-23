@@ -262,7 +262,7 @@ app.get('/', (req, res) => {
 
 // Route to handle NGINX-forwarded 413 errors
 app.get('/error', (req, res) => {
-  res.status(413).json({ error: 'File too large 2' });
+  res.status(413).send('File too large 2');
 });
 
 
