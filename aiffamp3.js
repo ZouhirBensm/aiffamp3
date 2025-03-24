@@ -269,6 +269,22 @@ app.get('/error', (req, res) => {
 
 
 
+app.get('/privacy-policy', (req, res) => {
+
+  const filePath = path.join(__dirname, 'public/html/privacy-policy.html');
+  console.log('File Path:', filePath);
+
+  fs_regular.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      console.error('Error reading file:', err);
+      return res.status(500).send('Error loading privacy policy');
+    }
+
+    res.type('html').send(data);
+  });
+});
+
+
 
 
 // Error handling middleware
