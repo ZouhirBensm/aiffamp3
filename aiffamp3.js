@@ -271,7 +271,7 @@ app.get('/error', (req, res) => {
 
 app.get('/privacy-policy', (req, res) => {
 
-  const filePath = path.join(__dirname, 'public/html/privacy-policy.html');
+  const filePath = path.join(__dirname, 'public/privacy-policy.html');
   console.log('File Path:', filePath);
 
   fs_regular.readFile(filePath, 'utf8', (err, data) => {
