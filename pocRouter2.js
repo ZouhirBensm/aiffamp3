@@ -6,6 +6,7 @@ const fs_regular = require('fs');
 const fs = require('fs').promises;
 const router = express.Router();
 
+
 // Configure multer for file uploads
 const multerConfig = {
     dest: 'uploads/',
@@ -179,7 +180,9 @@ router.post(
     async (req, res) => {
         await ensureUploadDir();
 
-        const ip = req.ip || req.connection.remoteAddress;
+        console.log("\n\nreq.headers['x-real-ip'], req.ip: ", req.headers['x-real-ip'], ', ', req.ip)
+        const ip = req.headers['x-real-ip'] || req.ip ;
+        // || req.connection.remoteAddress;
         await logRequest(ip);
 
         if (!req.file) {

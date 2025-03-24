@@ -14,6 +14,8 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT;
 
+app.set('trust proxy', true);
+
 app.use('/public', express.static('public'));
 
 
