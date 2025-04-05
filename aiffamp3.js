@@ -142,7 +142,7 @@ async function getFileSize(filePath) {
 
 // Process queue. This can have 4 different types on implementation.
 async function processQueue() {
-  // auto_save_mp3_queue_function.js
+  // auto_download_mp3_queue_function.js
   if (processing || queue.length === 0) return;
 
   processing = true;
@@ -156,22 +156,28 @@ async function processQueue() {
       });
     });
 
-    const finalOutputPath = path.join(__dirname, 'converted', `${path.basename(filePath)}.mp3`);
-    await fs.mkdir(path.join(__dirname, 'converted'), { recursive: true });
-    await fs.rename(outputPath, finalOutputPath);
+    // Send the converted file
+    res.download(outputPath, 'converted.mp3', async (err) => {
+      if (err) {
+        console.error('Error sending file:', err);
+      }
 
-    res.status(200).send(`File converted and saved to: ${finalOutputPath}`);
+      // Cleanup
+      currentQueueSize -= await getFileSize(filePath);
+      await fs.unlink(filePath).catch(() => { });
+      await fs.unlink(outputPath).catch(() => { });
 
-    currentQueueSize -= await getFileSize(filePath);
-    await fs.unlink(filePath).catch(() => { });
+      processing = false;
+      processQueue(); // Process next in queue
+    });
+
   } catch (error) {
     console.error('Conversion error:', error);
     res.status(500).send('Error converting file');
     currentQueueSize -= await getFileSize(filePath);
     await fs.unlink(filePath).catch(() => { });
-  } finally {
     processing = false;
-    processQueue(); // Process next in queue
+    processQueue();
   }
 }
 
@@ -188,47 +194,47 @@ app.use('/poc', pocRouter)
 
 
 // Conversion endpoint
-// app.post(
-//   '/convert',
-//   rateLimiter,
-//   checkLimits,
-//   upload.single('file'),
-//   async (req, res) => {
-//     await ensureUploadDir();
+app.post(
+  '/convert',
+  rateLimiter,
+  checkLimits,
+  upload.single('file'),
+  async (req, res) => {
+    await ensureUploadDir();
 
-//     const ip = req.ip || req.connection.remoteAddress;
-//     await logRequest(ip);
+    const ip = req.ip || req.connection.remoteAddress;
+    await logRequest(ip);
 
-//     if (!req.file) {
-//       return res.status(400).send('No file uploaded');
-//     }
+    if (!req.file) {
+      return res.status(400).send('No file uploaded');
+    }
 
-//     const filePath = req.file.path;
-//     const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
-//     const fileSize = await getFileSize(filePath);
+    const filePath = req.file.path;
+    const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
+    const fileSize = await getFileSize(filePath);
 
-//     if (currentQueueSize + fileSize > MAX_MEMORY) {
-//       await fs.unlink(filePath).catch(() => {});
-//       return res.status(503).send('Server memory limit reached. Please try again later. 2');
-//     }
+    if (currentQueueSize + fileSize > MAX_MEMORY) {
+      await fs.unlink(filePath).catch(() => {});
+      return res.status(503).send('Server memory limit reached. Please try again later. 2');
+    }
 
-//     currentQueueSize += fileSize;
-//     queue.push({ req, res, filePath, outputPath });
-//     // console.log("queue.length, MAX_QUEUE_SIZE:", queue.length, MAX_QUEUE_SIZE);
-//     processQueue();
-//   },
-//   (err, req, res, next) => {
-//     if (err instanceof multer.MulterError) {
-//       if (err.code === 'LIMIT_FILE_SIZE') {
-//         return res.status(400).send('File too large');
-//       }
-//     }
-//     if (err.message === 'Only AIFF files are allowed') {
-//       return res.status(400).send(err.message);
-//     }
-//     next(err);
-//   }
-// );
+    currentQueueSize += fileSize;
+    queue.push({ req, res, filePath, outputPath });
+    // console.log("queue.length, MAX_QUEUE_SIZE:", queue.length, MAX_QUEUE_SIZE);
+    processQueue();
+  },
+  (err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).send('File too large');
+      }
+    }
+    if (err.message === 'Only AIFF files are allowed') {
+      return res.status(400).send(err.message);
+    }
+    next(err);
+  }
+);
 
 
 
