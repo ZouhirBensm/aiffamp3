@@ -3,7 +3,8 @@
 // This code is essentially holds solely the mechanics of conversion. The mechanics of polling the server to get an update of where the conversion is at is not implemented here. The code here is kept as a reference so that I will be able to use to edit the code towards using multi-thread processing when the time to scale arives. I can simply also use this code to test out the conversion mechanics, debugging, and to help me identify any issues in the code currently used in production.
 const express = require('express');
 const dotenv = require('dotenv');
-const pocRouter = require('./pocRouter2');
+const pocRouter3 = require('./pocRouter3');
+const pocRouter2 = require('./pocRouter2');
 dotenv.config();
 const multer = require('multer');
 const { exec } = require('child_process');
@@ -142,7 +143,7 @@ async function getFileSize(filePath) {
 
 // Process queue. This can have 4 different types on implementation.
 async function processQueue() {
-  // auto_download_mp3_queue_function.js
+  // auto_save_mp3_queue_function.js
   if (processing || queue.length === 0) return;
 
   processing = true;
@@ -156,28 +157,22 @@ async function processQueue() {
       });
     });
 
-    // Send the converted file
-    res.download(outputPath, 'converted.mp3', async (err) => {
-      if (err) {
-        console.error('Error sending file:', err);
-      }
+    const finalOutputPath = path.join(__dirname, 'converted', `${path.basename(filePath)}.mp3`);
+    await fs.mkdir(path.join(__dirname, 'converted'), { recursive: true });
+    await fs.rename(outputPath, finalOutputPath);
 
-      // Cleanup
-      currentQueueSize -= await getFileSize(filePath);
-      await fs.unlink(filePath).catch(() => { });
-      await fs.unlink(outputPath).catch(() => { });
+    res.status(200).send(`File converted and saved to: ${finalOutputPath}`);
 
-      processing = false;
-      processQueue(); // Process next in queue
-    });
-
+    currentQueueSize -= await getFileSize(filePath);
+    await fs.unlink(filePath).catch(() => {});
   } catch (error) {
     console.error('Conversion error:', error);
     res.status(500).send('Error converting file');
     currentQueueSize -= await getFileSize(filePath);
-    await fs.unlink(filePath).catch(() => { });
+    await fs.unlink(filePath).catch(() => {});
+  } finally {
     processing = false;
-    processQueue();
+    processQueue(); // Process next in queue
   }
 }
 
@@ -185,56 +180,56 @@ async function processQueue() {
 
 
 
-
-app.use('/poc', pocRouter)
-
-
+app.use('/poc', pocRouter2)
+app.use('/poc3', pocRouter3)
 
 
 
 
-// Conversion endpoint
-app.post(
-  '/convert',
-  rateLimiter,
-  checkLimits,
-  upload.single('file'),
-  async (req, res) => {
-    await ensureUploadDir();
 
-    const ip = req.ip || req.connection.remoteAddress;
-    await logRequest(ip);
 
-    if (!req.file) {
-      return res.status(400).send('No file uploaded');
-    }
+// // Conversion endpoint
+// app.post(
+//   '/convert',
+//   rateLimiter,
+//   checkLimits,
+//   upload.single('file'),
+//   async (req, res) => {
+//     await ensureUploadDir();
 
-    const filePath = req.file.path;
-    const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
-    const fileSize = await getFileSize(filePath);
+//     const ip = req.ip || req.connection.remoteAddress;
+//     await logRequest(ip);
 
-    if (currentQueueSize + fileSize > MAX_MEMORY) {
-      await fs.unlink(filePath).catch(() => {});
-      return res.status(503).send('Server memory limit reached. Please try again later. 2');
-    }
+//     if (!req.file) {
+//       return res.status(400).send('No file uploaded');
+//     }
 
-    currentQueueSize += fileSize;
-    queue.push({ req, res, filePath, outputPath });
-    // console.log("queue.length, MAX_QUEUE_SIZE:", queue.length, MAX_QUEUE_SIZE);
-    processQueue();
-  },
-  (err, req, res, next) => {
-    if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).send('File too large');
-      }
-    }
-    if (err.message === 'Only AIFF files are allowed') {
-      return res.status(400).send(err.message);
-    }
-    next(err);
-  }
-);
+//     const filePath = req.file.path;
+//     const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
+//     const fileSize = await getFileSize(filePath);
+
+//     if (currentQueueSize + fileSize > MAX_MEMORY) {
+//       await fs.unlink(filePath).catch(() => {});
+//       return res.status(503).send('Server memory limit reached. Please try again later. 2');
+//     }
+
+//     currentQueueSize += fileSize;
+//     queue.push({ req, res, filePath, outputPath });
+//     // console.log("queue.length, MAX_QUEUE_SIZE:", queue.length, MAX_QUEUE_SIZE);
+//     processQueue();
+//   },
+//   (err, req, res, next) => {
+//     if (err instanceof multer.MulterError) {
+//       if (err.code === 'LIMIT_FILE_SIZE') {
+//         return res.status(400).send('File too large');
+//       }
+//     }
+//     if (err.message === 'Only AIFF files are allowed') {
+//       return res.status(400).send(err.message);
+//     }
+//     next(err);
+//   }
+// );
 
 
 
