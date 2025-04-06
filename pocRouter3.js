@@ -99,11 +99,11 @@ async function ensureUploadDir() {
 
 function formatFileSize(bytes) {
   if (bytes === 0) return '0 Bytes';
-  
+
   const units = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const unitIndex = Math.floor(Math.log(bytes) / Math.log(1024));
   const formattedSize = parseFloat((bytes / Math.pow(1024, unitIndex)).toFixed(2));
-  
+
   return `${formattedSize} ${units[unitIndex]}`;
 }
 
@@ -202,7 +202,7 @@ router.post(
     const fileSize = await getFileSize(filePath);
 
     if (currentQueueSize + fileSize > MAX_MEMORY) {
-      await fs.unlink(filePath).catch(() => {});
+      await fs.unlink(filePath).catch(() => { });
       return res.status(503).send('Server memory limit reached. Please try again later. 2');
     }
 
