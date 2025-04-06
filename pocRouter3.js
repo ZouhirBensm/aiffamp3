@@ -135,7 +135,7 @@ async function getFileSize(filePath) {
 
 // Process queue. This can have 4 different types on implementation.
 async function processQueue() {
-  // auto_save_mp3_queue_function.js
+  // auto_download_mp3_queue_function.js
   if (processing || queue.length === 0) return;
 
   processing = true;
@@ -149,22 +149,28 @@ async function processQueue() {
       });
     });
 
-    const finalOutputPath = path.join(__dirname, 'converted', `${path.basename(filePath)}.mp3`);
-    await fs.mkdir(path.join(__dirname, 'converted'), { recursive: true });
-    await fs.rename(outputPath, finalOutputPath);
+    // Send the converted file
+    res.download(outputPath, 'converted.mp3', async (err) => {
+      if (err) {
+        console.error('Error sending file:', err);
+      }
 
-    res.status(200).send(`File converted and saved to: ${finalOutputPath}`);
+      // Cleanup
+      currentQueueSize -= await getFileSize(filePath);
+      await fs.unlink(filePath).catch(() => { });
+      await fs.unlink(outputPath).catch(() => { });
 
-    currentQueueSize -= await getFileSize(filePath);
-    await fs.unlink(filePath).catch(() => {});
+      processing = false;
+      processQueue(); // Process next in queue
+    });
+
   } catch (error) {
     console.error('Conversion error:', error);
     res.status(500).send('Error converting file');
     currentQueueSize -= await getFileSize(filePath);
-    await fs.unlink(filePath).catch(() => {});
-  } finally {
+    await fs.unlink(filePath).catch(() => { });
     processing = false;
-    processQueue(); // Process next in queue
+    processQueue();
   }
 }
 
