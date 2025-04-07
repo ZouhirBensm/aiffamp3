@@ -184,11 +184,19 @@ router.post(
   checkLimits,
   upload.single('file'),
   async (req, res) => {
+
     await ensureUploadDir();
 
     if (!req.file) {
       return res.status(400).send('No file uploaded');
     }
+
+
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+
 
     const ip = req.headers['x-real-ip'] || req.ip;
     console.log(req.file.size)
