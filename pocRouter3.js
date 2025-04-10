@@ -191,11 +191,12 @@ router.post(
       return res.status(400).send('No file uploaded');
     }
 
-
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
+    // Used to interface with android app and work when permission (<preference name="AndroidInsecureFileModeEnabled" value="true" />) is missing
+    // res.header('Access-Control-Allow-Origin', '*');
+    // res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    // res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // The result is that the mp3 that gets converted is saved in:
+    // "MP3 saved at: https://localhost/__cdvfile_files-external__/converted_1744042229861.mp3", source: https://localhost/js/index.js (74)
 
 
     const ip = req.headers['x-real-ip'] || req.ip;
