@@ -184,6 +184,7 @@ router.post(
   checkLimits,
   upload.single('file'),
   async (req, res) => {
+    console.log("Hit! /poc3/convert")
 
     await ensureUploadDir();
 
