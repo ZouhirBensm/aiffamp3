@@ -1,3 +1,11 @@
+// POST /poc/convert
+
+// This router is destined for the website and chrome extension versions of the app.
+
+// This router is functional, running and operational.
+
+// This router has a system to update the client on the status of their conversion (i.e. uses FFmpeg progress inner mechanics)
+
 const express = require('express');
 const multer = require('multer');
 const { exec } = require('child_process');
@@ -7,7 +15,6 @@ const fs = require('fs').promises;
 const router = express.Router();
 
 
-// Configure multer for file uploads
 const multerConfig = {
   dest: 'uploads/',
   fileFilter: (req, file, cb) => {
@@ -22,6 +29,7 @@ const multerConfig = {
     // fileSize: 1.5 * 1024 * 1024 * 1024 // 1.5GB limit
   }
 };
+
 const upload = multer(multerConfig);
 
 // Queue management
@@ -31,7 +39,6 @@ const queue = [];
 let currentQueueSize = 0;
 const MAX_QUEUE_SIZE = 6;
 
-// Rate limiter configuration
 const RATE_LIMIT = {
   maxRequests: 10,
   windowMs: 15 * 60 * 1000,
@@ -46,7 +53,6 @@ function generateTaskId() {
   return Math.random().toString(36).substring(2, 10);
 }
 
-// Custom rate limiter middleware
 const rateLimiter = async (req, res, next) => {
   const ip = req.ip || req.connection.remoteAddress;
   const now = Date.now();
@@ -70,7 +76,6 @@ const rateLimiter = async (req, res, next) => {
   next();
 };
 
-// Middleware to check queue size and memory
 const checkLimits = (req, res, next) => {
   if (queue.length >= MAX_QUEUE_SIZE) {
     return res.status(503).send('Server queue limit reached. Please try again later.');
@@ -85,7 +90,6 @@ const checkLimits = (req, res, next) => {
   next();
 };
 
-// Ensure uploads directory exists
 async function ensureUploadDir() {
   try {
     await fs.mkdir('uploads', { recursive: true });
@@ -105,8 +109,6 @@ function formatFileSize(bytes) {
 }
 
 
-
-// Log request with IP
 async function logRequest(ip, filesize) {
   const timestamp = new Date().toISOString();
   const logEntry = `${timestamp} - IP: ${ip} - File: ${formatFileSize(filesize)}\n`;
@@ -117,7 +119,6 @@ async function logRequest(ip, filesize) {
   }
 }
 
-// Check file size
 async function getFileSize(filePath) {
   try {
     const stats = await fs.stat(filePath);
@@ -128,7 +129,7 @@ async function getFileSize(filePath) {
   }
 }
 
-// Process queue with real FFmpeg progress
+
 async function processQueueWithStatus(taskId) {
   if (processing || queue.length === 0) return;
 
@@ -183,7 +184,8 @@ async function processQueueWithStatus(taskId) {
   }
 }
 
-// Conversion endpoint
+
+
 router.post(
   '/convert',
   rateLimiter,
@@ -193,7 +195,6 @@ router.post(
     await ensureUploadDir();
 
     // console.log("\n\nreq.headers['x-real-ip'], req.ip: ", req.headers['x-real-ip'], ', ', req.ip)
-    
 
     if (!req.file) {
       return res.status(400).send('No file uploaded');
@@ -237,6 +238,7 @@ router.post(
   }
 );
 
+
 // Status endpoint
 router.get('/status/:taskId', (req, res) => {
   const taskId = req.params.taskId;
@@ -248,6 +250,8 @@ router.get('/status/:taskId', (req, res) => {
 
   res.json({ status: task.status, progress: task.progress });
 });
+
+
 
 // Download endpoint
 router.get('/download/:taskId', async (req, res) => {
@@ -268,34 +272,6 @@ router.get('/download/:taskId', async (req, res) => {
     tasks.delete(taskId);
   });
 });
-
-
-
-// router.get('/webpage', (req, res) => {
-//     console.log(process.env.ENV_NAV_URL);
-
-
-//     const filePath = path.join(__dirname, 'public/poc/html/webpage2.html');
-
-//     console.log('File Path:', filePath); // Log the resolved path
-
-//     fs_regular.readFile(filePath, 'utf8', (err, data) => {
-//         if (err) {
-//           console.error('Error reading file:', err);
-//           return res.status(500).send('Something went wrong while reading the file!');
-//         }
-
-//         // Inject the environment variable into the script tag
-//         const modifiedHtml = data.replace(
-//             '</head>',
-//             `<script>window.ENV_NAV_URL = "${process.env.ENV_NAV_URL || ''}";</script></head>`
-//         );
-
-//         // Send the modified HTML to the client
-//         res.send(modifiedHtml);
-//       });
-// });
-
 
 
 

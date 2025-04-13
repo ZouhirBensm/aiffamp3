@@ -1,6 +1,11 @@
 //123
 
-// This code is essentially holds solely the mechanics of conversion. The mechanics of polling the server to get an update of where the conversion is at is not implemented here. The code here is kept as a reference so that I will be able to use to edit the code towards using multi-thread processing when the time to scale arives. I can simply also use this code to test out the conversion mechanics, debugging, and to help me identify any issues in the code currently used in production.
+// The main script serves the main GET / GET /privacy-policy HTML webpages
+// This code is essentially holds solely the mechanics of conversion. 
+// The mechanics of polling the server to get an update of where the conversion is at is not implemented here. 
+// The code here is kept as a reference so that I will be able to use to edit the code towards using multi-thread processing when the time to scale arives. 
+// I can simply also use this code to test out the conversion mechanics, debugging, and to help me identify any issues in the code currently used in production.
+
 const express = require('express');
 const dotenv = require('dotenv');
 const pocRouter3 = require('./pocRouter3');
@@ -21,8 +26,6 @@ app.use('/public', express.static('public'));
 
 
 
-
-// Configure multer for file uploads
 const multerConfig = {
   dest: 'uploads/',
   fileFilter: (req, file, cb) => {
@@ -48,9 +51,10 @@ let processing = false;
 const queue = [];
 let currentQueueSize = 0; // in bytes
 const MAX_QUEUE_SIZE = 6; // Max 6 item in queue
-// const MAX_QUEUE_SIZE = 1; // Max 1 item in queue for testing
+// const MAX_QUEUE_SIZE = 1;
 
-// Rate limiter configuration
+
+
 const RATE_LIMIT = {
   maxRequests: 10,
   windowMs: 15 * 60 * 1000,
@@ -58,8 +62,6 @@ const RATE_LIMIT = {
 };
 
 
-
-// Custom rate limiter middleware
 const rateLimiter = async (req, res, next) => {
   const ip = req.ip || req.connection.remoteAddress;
   const now = Date.now();
@@ -83,17 +85,17 @@ const rateLimiter = async (req, res, next) => {
   next();
 };
 
+
+
 // Middleware to check queue size and memory before upload
 const checkLimits = (req, res, next) => {
   console.log("queue.length, MAX_QUEUE_SIZE:", queue.length, MAX_QUEUE_SIZE);
-  // Check if server is busy queue is full
   if (queue.length >= MAX_QUEUE_SIZE) {
     return res.status(503).send('Server queue limit reached. Please try again later.');
   }
 
-  // Check memory based on Content-Length header (if available)
   const contentLength = parseInt(req.headers['content-length'], 10);
-  // console.log("\n\n->** contentLength: ", contentLength)
+  // console.log("\n\ncontentLength: ", contentLength, "\n\n")
   // const contentLength = NaN // For testing
 
   if (contentLength && !isNaN(contentLength)) {
@@ -105,10 +107,10 @@ const checkLimits = (req, res, next) => {
   next();
 };
 
-// Log file path
+
 const logFile = path.join(__dirname, 'request_logs.txt');
 
-// Ensure uploads directory exists
+
 async function ensureUploadDir() {
   try {
     await fs.mkdir('uploads', { recursive: true });
@@ -117,7 +119,8 @@ async function ensureUploadDir() {
   }
 }
 
-// Log request with IP
+
+
 async function logRequest(ip) {
   const timestamp = new Date().toISOString();
   const logEntry = `${timestamp} - IP: ${ip}\n`;
@@ -128,7 +131,7 @@ async function logRequest(ip) {
   }
 }
 
-// Check file size
+
 async function getFileSize(filePath) {
   try {
     const stats = await fs.stat(filePath);
@@ -141,7 +144,8 @@ async function getFileSize(filePath) {
 
 
 
-// Process queue. This can have 4 different types on implementation.
+// Process queue. 
+// This can have 4 different types on implementation.
 async function processQueue() {
   // auto_save_mp3_queue_function.js
   if (processing || queue.length === 0) return;
@@ -187,7 +191,7 @@ app.use('/poc3', pocRouter3)
 
 
 
-
+// Temporarly turned and commented off this endpoint POST /convert
 // // Conversion endpoint
 // app.post(
 //   '/convert',
@@ -239,11 +243,9 @@ app.use('/poc3', pocRouter3)
 
 app.get('/', (req, res) => {
   console.log(process.env.ENV_NAV_URL);
-
-
   const filePath = path.join(__dirname, 'public/poc/html/webpage2.html');
 
-  console.log('File Path:', filePath); // Log the resolved path
+  console.log('File Path:', filePath);
 
   fs_regular.readFile(filePath, 'utf8', (err, data) => {
     if (err) {
@@ -251,13 +253,11 @@ app.get('/', (req, res) => {
       return res.status(500).send('Something went wrong while reading the file!');
     }
 
-    // Inject the environment variable into the script tag
     const modifiedHtml = data.replace(
       '</head>',
       `<script>window.ENV_NAV_URL = "${process.env.ENV_NAV_URL || ''}";</script></head>`
     );
 
-    // Send the modified HTML to the client
     res.send(modifiedHtml);
   });
 });
@@ -288,11 +288,15 @@ app.get('/privacy-policy', (req, res) => {
 
 
 
-// Error handling middleware
+// Error handling middleware. Catches as next(error) calls or undealt with error in the lifecycle.
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something went wrong! 1');
 });
+
+
+
+
 
 const gracefulShutdown = async () => {
   console.log('Closing the app gracefully...');
@@ -300,8 +304,11 @@ const gracefulShutdown = async () => {
   process.exit(0);
 };
 
+
 process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

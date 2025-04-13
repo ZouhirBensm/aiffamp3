@@ -1,4 +1,11 @@
-//123
+// POST /poc3/convert
+
+// This router is destined for the android version on the app
+
+// This router is functional and operations under development context.
+
+// This router has no system to update the client on the status of their conversion (i.e. uses FFmpeg progress inner mechanics). The update client mechanics are implemented in the ./pocRouter2.js script /poc/convert.
+
 const express = require('express');
 const multer = require('multer');
 const { exec } = require('child_process');
@@ -8,7 +15,6 @@ const fs = require('fs').promises;
 const router = express.Router();
 
 
-// Configure multer for file uploads
 const multerConfig = {
   dest: 'uploads/',
   fileFilter: (req, file, cb) => {
@@ -32,7 +38,6 @@ const queue = [];
 let currentQueueSize = 0;
 const MAX_QUEUE_SIZE = 6;
 
-// Rate limiter configuration
 const RATE_LIMIT = {
   maxRequests: 10,
   windowMs: 15 * 60 * 1000,
@@ -40,8 +45,6 @@ const RATE_LIMIT = {
 };
 
 
-
-// Custom rate limiter middleware
 const rateLimiter = async (req, res, next) => {
   const ip = req.ip || req.connection.remoteAddress;
   const now = Date.now();
@@ -65,17 +68,17 @@ const rateLimiter = async (req, res, next) => {
   next();
 };
 
-// Middleware to check queue size and memory before upload
+
+
+
 const checkLimits = (req, res, next) => {
   console.log("queue.length, MAX_QUEUE_SIZE:", queue.length, MAX_QUEUE_SIZE);
-  // Check if server is busy queue is full
   if (queue.length >= MAX_QUEUE_SIZE) {
     return res.status(503).send('Server queue limit reached. Please try again later.');
   }
 
-  // Check memory based on Content-Length header (if available)
   const contentLength = parseInt(req.headers['content-length'], 10);
-  // console.log("\n\n->** contentLength: ", contentLength)
+  // console.log("\n\ncontentLength: ", contentLength, "\n\n")
   // const contentLength = NaN // For testing
 
   if (contentLength && !isNaN(contentLength)) {
@@ -88,7 +91,6 @@ const checkLimits = (req, res, next) => {
 };
 
 
-// Ensure uploads directory exists
 async function ensureUploadDir() {
   try {
     await fs.mkdir('uploads', { recursive: true });
@@ -108,8 +110,6 @@ function formatFileSize(bytes) {
 }
 
 
-
-// Log request with IP
 async function logRequest(ip, filesize) {
   const timestamp = new Date().toISOString();
   const logEntry = `${timestamp} - IP: ${ip} - File: ${formatFileSize(filesize)}\n`;
@@ -120,7 +120,7 @@ async function logRequest(ip, filesize) {
   }
 }
 
-// Check file size
+
 async function getFileSize(filePath) {
   try {
     const stats = await fs.stat(filePath);
@@ -133,7 +133,8 @@ async function getFileSize(filePath) {
 
 
 
-// Process queue. This can have 4 different types on implementation.
+// Process queue. 
+// This can have 4 different types on implementation.
 async function processQueue() {
   // auto_download_mp3_queue_function.js
   if (processing || queue.length === 0) return;
@@ -149,19 +150,17 @@ async function processQueue() {
       });
     });
 
-    // Send the converted file
     res.download(outputPath, 'converted.mp3', async (err) => {
       if (err) {
         console.error('Error sending file:', err);
       }
 
-      // Cleanup
       currentQueueSize -= await getFileSize(filePath);
       await fs.unlink(filePath).catch(() => { });
       await fs.unlink(outputPath).catch(() => { });
 
       processing = false;
-      processQueue(); // Process next in queue
+      processQueue();
     });
 
   } catch (error) {
@@ -176,15 +175,14 @@ async function processQueue() {
 
 
 
-
-// Conversion endpoint
 router.post(
   '/convert',
   rateLimiter,
   checkLimits,
   upload.single('file'),
   async (req, res) => {
-    console.log("Hit! /poc3/convert")
+
+    console.log("\n\nHit! /poc3/convert\n\n")
 
     await ensureUploadDir();
 
@@ -192,17 +190,15 @@ router.post(
       return res.status(400).send('No file uploaded');
     }
 
-    // Used to interface with android app and work when permission (<preference name="AndroidInsecureFileModeEnabled" value="true" />) is missing
+    // Kept in case you are having CORS issues
     // res.header('Access-Control-Allow-Origin', '*');
     // res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     // res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    // The result is that the mp3 that gets converted is saved in:
-    // "MP3 saved at: https://localhost/__cdvfile_files-external__/converted_1744042229861.mp3", source: https://localhost/js/index.js (74)
 
 
     const ip = req.headers['x-real-ip'] || req.ip;
-    console.log(req.file.size)
     // || req.connection.remoteAddress;
+
 
     await logRequest(ip, req.file.size);
 
@@ -218,7 +214,6 @@ router.post(
 
     currentQueueSize += fileSize;
     queue.push({ req, res, filePath, outputPath });
-    // console.log("queue.length, MAX_QUEUE_SIZE:", queue.length, MAX_QUEUE_SIZE);
     processQueue();
   },
   (err, req, res, next) => {

@@ -1,3 +1,10 @@
+// This router is not referenced, used nor activated from the main aiffamp3.js script
+
+// This router was used for the following reasons:
+// 1. In order to test added router functionality
+// 2. To test the serving of a new HTML webpage
+// 3. To test the ability to make a POST request from client, retrieve a mp3 from server file system, execute a download from the server onto the client
+
 const express = require('express');
 const path = require('path');
 const router = express.Router();
