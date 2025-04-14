@@ -20,7 +20,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
 
 
   try {
-    const uploadResponse = await fetch(`${window.ENV_NAV_URL}/poc/convert`, {
+    const uploadResponse = await fetch(`${window.ENV_NAV_URL}/poc4/convert`, {
       method: 'POST',
       body: formData
     });
@@ -34,7 +34,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
     statusDiv.innerHTML = `File received by server (${fileSizeMB} MB). Queued...`;
 
     const pollStatus = async () => {
-      const statusResponse = await fetch(`${window.ENV_NAV_URL}/poc/status/${taskId}`);
+      const statusResponse = await fetch(`${window.ENV_NAV_URL}/poc4/status/${taskId}`);
       if (!statusResponse.ok) {
         const errorText = await statusResponse.text();
         throw { status: statusResponse.status, message: errorText };
@@ -49,7 +49,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
       statusDiv.innerHTML = `File (${fileSizeMB} MB): ${status} (${progress}%)`;
 
       if (status === 'completed') {
-        const downloadUrl = `${window.ENV_NAV_URL}/poc/download/${taskId}`;
+        const downloadUrl = `${window.ENV_NAV_URL}/poc4/download/${taskId}`;
         const a = document.createElement('a');
         a.href = downloadUrl;
         a.download = 'converted.mp3';
