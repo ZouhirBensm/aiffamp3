@@ -1,0 +1,14 @@
+# Base URL configuration
+@host = http://localhost:3007
+@port = 3007
+
+POST {{host}}/poc4/convert
+Content-Type: multipart/form-data; boundary=----123
+
+------123
+Content-Disposition: form-data; name="file"; filename="short.aiff"
+Content-Type: audio/aiff
+
+< /Users/Zouhir/Documents/NODE2/aiffamp3_documents/audios/audio-convert-testing-1/short.aiff
+------123--
+---
