@@ -1,6 +1,6 @@
 // POST /poc/convert
 
-// This router is destined for the website and chrome extension versions of the app.
+// This router is destined for the website, android and chrome extension versions.
 
 // This router is functional, running and operational.
 

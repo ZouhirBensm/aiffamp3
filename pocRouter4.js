@@ -1,16 +1,19 @@
 // POST /poc4/convert
 
-// This router is destined for the android version on the app
+// This router is destined for the android version
 
-// This router is non functional and operations under development context.
+// This router is functional, running and operational.
+// v2.1.6 server
+// v4.2 android
 
-// This router has is trying to implement the system to update the client on the status of their conversion (i.e. uses FFmpeg progress inner mechanics). The update client mechanics are implemented in the ./pocRouter2.js script /poc/convert.
+// This router has a system to update the client on the status of their conversion (i.e. uses FFmpeg progress inner mechanics)
 
 const express = require('express');
 const multer = require('multer');
 const { exec } = require('child_process');
 const path = require('path');
 const fs_regular = require('fs');
+const { Server } = require('http');
 const fs = require('fs').promises;
 const router = express.Router();
 

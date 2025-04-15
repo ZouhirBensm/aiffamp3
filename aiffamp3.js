@@ -186,10 +186,10 @@ async function processQueue() {
 
 
 app.use('/poc', pocRouter2)
-// TODO turn off pocRouter3 once pocRouter4 functions as intended
-app.use('/poc3', pocRouter3)
 
-app.use('/poc4', pocRouter4)
+// app.use('/poc3', pocRouter3)
+
+// app.use('/poc4', pocRouter4)
 
 
 
