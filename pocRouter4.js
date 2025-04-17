@@ -3,37 +3,18 @@
 // This router is destined for the android version
 
 // This router is functional, running and operational.
-// v2.1.6 server
-// v4.2 android
 
 // This router has a system to update the client on the status of their conversion (i.e. uses FFmpeg progress inner mechanics)
 
 const express = require('express');
-const multer = require('multer');
 const { exec } = require('child_process');
 const path = require('path');
 const fs_regular = require('fs');
 const { Server } = require('http');
 const fs = require('fs').promises;
+const bodyParser = require('body-parser');
+
 const router = express.Router();
-
-
-const multerConfig = {
-  dest: 'uploads/',
-  fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (ext !== '.aiff' && ext !== '.aif') {
-      return cb(new Error('Only AIFF files are allowed'));
-    }
-    cb(null, true);
-  },
-  limits: {
-    fileSize: 1127 * 1024 * 1024 // 10% over 1GB
-    // fileSize: 1.5 * 1024 * 1024 * 1024 // 1.5GB limit
-  }
-};
-
-const upload = multer(multerConfig);
 
 // Queue management
 const MAX_MEMORY = 32 * 1024 * 1024 * 1024; // 32GB in bytes
@@ -193,30 +174,37 @@ router.post(
   '/convert',
   rateLimiter,
   checkLimits,
-  upload.single('file'),
+  bodyParser.raw({ 
+    type: 'application/octet-stream',
+    limit: '1.5GB' 
+  }),
   async (req, res) => {
     await ensureUploadDir();
-
-    // console.log("\n\nreq.headers['x-real-ip'], req.ip: ", req.headers['x-real-ip'], ', ', req.ip)
-
-    if (!req.file) {
+    
+    if (!req.body || req.body.length === 0) {
       return res.status(400).send('No file uploaded');
     }
 
     const ip = req.headers['x-real-ip'] || req.ip;
-    console.log(req.file.size)
-    // || req.connection.remoteAddress;
+    await logRequest(ip, req.body.length);
 
-    await logRequest(ip, req.file.size);
+    // Generate filenames
+    const fileName = `upload_${Date.now()}.aiff`;
+    const filePath = path.join('uploads', fileName);
+    const outputPath = path.join('uploads', `${fileName}.mp3`);
 
+    // Write the raw buffer to file
+    try {
+      await fs.promises.writeFile(filePath, req.body);
+    } catch (err) {
+      return res.status(500).send('File save failed');
+    }
 
-    const filePath = req.file.path;
-    const outputPath = path.join('uploads', `${req.file.filename}.mp3`);
+    // Rest of your existing queue logic remains the same...
     const fileSize = await getFileSize(filePath);
-
     if (currentQueueSize + fileSize > MAX_MEMORY) {
-      await fs.unlink(filePath).catch(() => { });
-      return res.status(503).send('Server memory limit reached. Please try again later.');
+      await fs.unlink(filePath).catch(() => {});
+      return res.status(503).send('Server memory limit reached');
     }
 
     const taskId = generateTaskId();
@@ -227,17 +215,6 @@ router.post(
     processQueueWithStatus(taskId);
 
     res.json({ taskId });
-  },
-  (err, req, res, next) => {
-    if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(413).send('File too large 1');
-      }
-    }
-    if (err.message === 'Only AIFF files are allowed') {
-      return res.status(400).send(err.message);
-    }
-    next(err);
   }
 );
 
