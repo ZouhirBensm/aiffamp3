@@ -195,7 +195,7 @@ router.post(
 
     // Write the raw buffer to file
     try {
-      await fs.promises.writeFile(filePath, req.body);
+      await fs.writeFile(filePath, req.body);
     } catch (err) {
       return res.status(500).send('File save failed');
     }
