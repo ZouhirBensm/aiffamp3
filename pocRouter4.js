@@ -351,8 +351,11 @@ router.get('/status/:taskId', (req, res) => {
   res.json({ status: task.status, progress: task.progress });
 });
 
-// Download endpoint
-router.get('/download/:taskId', async (req, res) => {
+
+
+
+// Request file
+router.get('/request/:taskId', async (req, res) => {
   const taskId = req.params.taskId;
   const task = tasks.get(taskId);
 
